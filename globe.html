@@ -170,7 +170,7 @@ rim.scale.setScalar(R * 3.1); scene.add(rim);
 const dots = D.dots, dPos = new Float32Array(dots.length / 2 * 3);
 for (let k = 0; k < dots.length / 2; k++) toXYZ(dots[2 * k], dots[2 * k + 1], R * 1.002).toArray(dPos, k * 3);
 const dGeo = new THREE.BufferGeometry(); dGeo.setAttribute("position", new THREE.BufferAttribute(dPos, 3));
-scene.add(new THREE.Points(dGeo, new THREE.PointsMaterial({ size: 0.55, color: 0xd9cbb6, transparent: true, opacity: 0.5 })));
+scene.add(new THREE.Points(dGeo, new THREE.PointsMaterial({ size: 0.75, color: 0xd9cbb6, transparent: true, opacity: 0.72 })));
 
 /* ---------- country spikes ---------- */
 const maxP = Math.max(...C.map(c => c.papers));
@@ -178,14 +178,14 @@ const up = new THREE.Vector3(0, 1, 0);
 const spikes = [], heads = [], hits = [];
 const hitGeo = new THREE.SphereGeometry(1, 10, 8), barGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true);
 C.forEach((c, i) => {
-  const n = toXYZ(c.lat, c.lon).normalize(), h = 1.5 + 34 * Math.sqrt(c.papers / maxP), w = 0.25 + 0.75 * Math.sqrt(c.papers / maxP);
+  const n = toXYZ(c.lat, c.lon).normalize(), h = 1.2 + 21 * Math.sqrt(c.papers / maxP), w = 0.18 + 0.45 * Math.sqrt(c.papers / maxP);
   const col = intlColor(c.intl);
   const bar = new THREE.Mesh(barGeo, new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.35, transparent: true, opacity: 0.9 }));
   bar.scale.set(w, h, w); bar.position.copy(n.clone().multiplyScalar(R + h / 2));
   bar.quaternion.setFromUnitVectors(up, n); scene.add(bar); spikes.push(bar);
   const top = n.clone().multiplyScalar(R + h);
   const head = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
-  head.scale.setScalar(2 + 5 * Math.sqrt(c.papers / maxP)); head.position.copy(top); scene.add(head); heads.push(head);
+  head.scale.setScalar(1.8 + 3.6 * Math.sqrt(c.papers / maxP)); head.position.copy(top); scene.add(head); heads.push(head);
   const hit = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({ visible: false }));
   hit.scale.setScalar(Math.max(2.2, w * 2.5)); hit.position.copy(n.clone().multiplyScalar(R + Math.min(h, 6) / 2 + 1));
   hit.userData.i = i; scene.add(hit); hits.push(hit);
@@ -217,7 +217,7 @@ const pulses = arcs.slice(0, 36).map((a, k) => {
 });
 
 /* ---------- labels ---------- */
-const tags = C.slice(0, 16).map((c, i) => {
+const tags = C.slice(0, 18).map((c, i) => {
   const el = document.createElement("div"); el.className = "tag"; el.textContent = c.name; $("tags").appendChild(el); return { el, i };
 });
 
@@ -311,13 +311,18 @@ function frame(now) {
   pulses.forEach(p => { if (p.s.visible) p.s.position.copy(p.a.curve.getPoint((t * p.speed + p.off) % 1)); });
   renderer.render(scene, camera);
   camDir.copy(camera.position).normalize();
+  const placed = [];   // labels in paper order; one that would overlap a placed label is hidden
   tags.forEach(({ el, i }) => {
     const c = C[i], facing = c.n.dot(camDir);
     v3.copy(c.top).project(camera);
-    if (facing < 0.15 || v3.z > 1) { el.style.visibility = "hidden"; return; }
+    if (!el.w) { el.w = el.offsetWidth; el.h = el.offsetHeight; }
+    const x = (v3.x + 1) / 2 * innerWidth + 8, y = (1 - v3.y) / 2 * innerHeight - el.h / 2;
+    const hit = placed.some(b => x < b.x + b.w + 4 && x + el.w + 4 > b.x && y < b.y + b.h && y + el.h > b.y);
+    if (facing < 0.15 || v3.z > 1 || hit) { el.style.visibility = "hidden"; return; }
+    placed.push({ x, y, w: el.w, h: el.h });
     el.style.visibility = "visible";
     el.style.opacity = Math.min(1, (facing - 0.15) * 4);
-    el.style.transform = `translate(${(v3.x + 1) / 2 * innerWidth + 8}px, ${(1 - v3.y) / 2 * innerHeight}px) translateY(-50%)`;
+    el.style.transform = `translate(${x}px, ${y}px)`;
   });
   requestAnimationFrame(frame);
 }

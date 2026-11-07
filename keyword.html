@@ -130,7 +130,7 @@ const lerpStops = (stops, t) => {
 const YR0 = T.yr0, YR1 = T.yr1, YMID = (YR0 + YR1) / 2;
 const yearStops = [[0, "#efe3cc"], [0.35, "#f1b39f"], [0.7, "#e2434f"], [1, "#b0102a"]];
 const clusterHex = ["#e8475a", "#f2c14e", "#5fb3d9", "#8fd694", "#c693f0", "#f08a5d", "#e8dcc4", "#5de0c4", "#ff9fc4", "#9fb0ff"];
-const terrainStops = [[0, "#22180f"], [0.07, "#5e4129"], [0.2, "#b08d5f"], [0.38, "#ece1ca"], [0.6, "#f3cdbd"], [0.8, "#e1636f"], [1, "#b81d33"]];
+const terrainStops = [[0, "#0f0d0e"], [0.06, "#3a2818"], [0.18, "#9a7650"], [0.36, "#ece1ca"], [0.6, "#f3cdbd"], [0.8, "#e1636f"], [1, "#b81d33"]];
 let colorMode = "yr";
 const nodeColor = n => colorMode === "yr" ? lerpStops(yearStops, (n.yr - YR0) / (YR1 - YR0))
   : new THREE.Color(clusterHex[(n.c - 1) % clusterHex.length]);
@@ -145,7 +145,7 @@ $("stage").appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0c0e12, 160, 360);
 const camera = new THREE.PerspectiveCamera(45, 1, 0.5, 900);
-camera.position.set(0, 12, 128);
+camera.position.set(0, 14, 168);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
 controls.autoRotate = !reduce; controls.autoRotateSpeed = 0.45;
@@ -165,12 +165,14 @@ const xs = N.map(n => n.x * S), zs = N.map(n => -n.y * S);
 const minX = Math.min(...xs) - 20, maxX = Math.max(...xs) + 20, minZ = Math.min(...zs) - 20, maxZ = Math.max(...zs) + 20;
 const wts = N.map(n => Math.pow(n.o, 0.75));
 const rawH = (x, z) => { let h = 0; for (let i = 0; i < L; i++) { const dx = x - xs[i], dz = z - zs[i]; h += wts[i] * Math.exp(-(dx * dx + dz * dz) / (2 * SIG * SIG)); } return h; };
-const W = maxX - minX, DZ = maxZ - minZ, SEGX = 170, SEGZ = Math.round(170 * DZ / W);
+const W = maxX - minX, DZ = maxZ - minZ, SEGX = 220, SEGZ = Math.round(220 * DZ / W);
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const edgeFade = (x, z) => smooth(0, 16, Math.min(x - minX, maxX - x)) * smooth(0, 16, Math.min(z - minZ, maxZ - z));
 const tGeo = new THREE.PlaneGeometry(W, DZ, SEGX, SEGZ);
 tGeo.rotateX(-Math.PI / 2); tGeo.translate((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
 const tp = tGeo.attributes.position, raws = new Float32Array(tp.count);
 let rmax = 0;
-for (let i = 0; i < tp.count; i++) { raws[i] = rawH(tp.getX(i), tp.getZ(i)); rmax = Math.max(rmax, raws[i]); }
+for (let i = 0; i < tp.count; i++) { raws[i] = rawH(tp.getX(i), tp.getZ(i)) * edgeFade(tp.getX(i), tp.getZ(i)); rmax = Math.max(rmax, raws[i]); }
 const hScale = H_MAX / rmax;
 const tCol = new Float32Array(tp.count * 3);
 for (let i = 0; i < tp.count; i++) {
@@ -184,7 +186,7 @@ tGeo.setAttribute("color", new THREE.BufferAttribute(tCol, 3));
 tGeo.computeVertexNormals();
 const terrain = new THREE.Mesh(tGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.02, transparent: true, opacity: 0 }));
 terrain.position.y = Y_OFF; scene.add(terrain);
-const ground = N.map((n, i) => rawH(xs[i], zs[i]) * hScale + Y_OFF);
+const ground = N.map((n, i) => rawH(xs[i], zs[i]) * edgeFade(xs[i], zs[i]) * hScale + Y_OFF);
 const pTer = N.map((n, i) => new THREE.Vector3(xs[i], ground[i] + 5 + 11 * Math.sqrt(n.o / maxO), zs[i]));
 
 /* ---------- burst: hub keyword at the centre ---------- */
@@ -247,13 +249,13 @@ dustGeo.setAttribute("position", new THREE.BufferAttribute(dp, 3));
 const dustMat = new THREE.PointsMaterial({ size: 0.7, color: 0xe9d9c6, transparent: true, opacity: 0, depthWrite: false });
 scene.add(new THREE.Points(dustGeo, dustMat));
 
-const CLOUD = 16000, cw = N.map(n => Math.pow(n.o, 0.8)), cwSum = cw.reduce((a, b) => a + b, 0);
+const CLOUD = 14000, cw = N.map(n => Math.pow(n.o, 0.8)), cwSum = cw.reduce((a, b) => a + b, 0);
 const cPos = new Float32Array(CLOUD * 3), cCol = new Float32Array(CLOUD * 3);
 const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
 const warm = new THREE.Color("#f6c3a4"), cream = new THREE.Color("#f1e6dc"), haze = new THREE.Color("#8fa3b8");
 for (let k = 0; k < CLOUD; k++) {
   let pick = rnd() * cwSum, i = 0; while (pick > cw[i] && i < L - 1) pick -= cw[i++];
-  const sd = 5 + 9 * Math.sqrt(N[i].o / maxO) + rnd() * 6, gx = gauss(), gy = gauss(), gz = gauss();
+  const sd = 3 + 6 * Math.sqrt(N[i].o / maxO) + rnd() * 3, gx = gauss(), gy = gauss(), gz = gauss();
   cPos.set([pNeb[i].x + gx * sd, pNeb[i].y + gy * sd, pNeb[i].z + gz * sd], k * 3);
   const spread = Math.min(1, Math.sqrt(gx * gx + gy * gy + gz * gz) / 2.6);
   const c = (N[i].o / maxO > 0.3 ? warm.clone().lerp(cream, spread) : cream.clone()).lerp(haze, spread * 0.8);
@@ -262,21 +264,21 @@ for (let k = 0; k < CLOUD; k++) {
 const cloudGeo = new THREE.BufferGeometry();
 cloudGeo.setAttribute("position", new THREE.BufferAttribute(cPos, 3));
 cloudGeo.setAttribute("color", new THREE.BufferAttribute(cCol, 3));
-const cloudMat = new THREE.PointsMaterial({ size: 7, map: glowTex, vertexColors: true, transparent: true, opacity: 0, depthWrite: false });
+const cloudMat = new THREE.PointsMaterial({ size: 13, map: glowTex, vertexColors: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
 const cloud = new THREE.Points(cloudGeo, cloudMat); scene.add(cloud);
 
 /* ---------- view definitions ---------- */
 const VIEWS = {
-  net: { pos: pNet, op: { links: 0.2, stems: 0, spokes: 0, terrain: 0, dust: 0.35, cloud: 0 }, hub: 1, cam: [0, 12, 128],
+  net: { pos: pNet, op: { links: 0.2, stems: 0, spokes: 0, terrain: 0, dust: 0.35, cloud: 0 }, hub: 1, cam: [0, 14, 168],
     title: T.noun + " Star Map",
     note: `<b>Depth</b> = ${T.depth}<br><b>Sphere size</b> = ${T.unit}<br>${T.layout}` },
-  ter: { pos: pTer, op: { links: 0, stems: 0.55, spokes: 0, terrain: 1, dust: 0, cloud: 0 }, hub: 1, cam: [0, 78, 112],
+  ter: { pos: pTer, op: { links: 0, stems: 0.55, spokes: 0, terrain: 1, dust: 0, cloud: 0 }, hub: 1, cam: [0, 88, 128],
     title: T.noun + " Terrain",
     note: `<b>Height</b> = density, weighted by ${T.unit}<br><b>Stem height</b> = ${T.unit}<br>${T.layout}` },
-  burst: { pos: pBurst, op: { links: 0.03, stems: 0, spokes: 0.4, terrain: 0, dust: 0.35, cloud: 0 }, hub: 2.4, cam: [0, 10, 165],
+  burst: { pos: pBurst, op: { links: 0.03, stems: 0, spokes: 0.4, terrain: 0, dust: 0.35, cloud: 0 }, hub: 2.4, cam: [0, 10, 205],
     title: T.noun + " Burst",
     note: "", },
-  neb: { pos: pNeb, op: { links: 0.3, stems: 0, spokes: 0, terrain: 0, dust: 0.12, cloud: 0.16 }, hub: 1, cam: [0, 6, 112],
+  neb: { pos: pNeb, op: { links: 0.26, stems: 0, spokes: 0, terrain: 0, dust: 0.12, cloud: 0.055 }, hub: 1, cam: [0, 8, 150],
     title: T.noun + " Nebula",
     note: `<b>Cloud density</b> = density, weighted by ${T.unit}<br><b>Filaments</b> = ${T.links}<br>${T.layout}` },
 };
@@ -316,8 +318,9 @@ function place() {
   dustMat.opacity = state.op.dust; cloudMat.opacity = state.op.cloud; cloud.visible = state.op.cloud > 0.002;
 }
 
-/* ---------- labels ---------- */
-N.map((n, i) => i).sort((a, b) => N[b].o - N[a].o).slice(0, 22).forEach(i => {
+/* ---------- labels (drawn in frequency order; a label that would overlap one already placed is hidden) ---------- */
+const tagOrder = N.map((n, i) => i).sort((a, b) => N[b].o - N[a].o).slice(0, 22);
+tagOrder.forEach(i => {
   const el = document.createElement("div"); el.className = "tag";
   el.appendChild(document.createElement("i")); el.appendChild(document.createTextNode(N[i].l));
   $("tags").appendChild(el); tags[i] = el;
@@ -414,12 +417,18 @@ function frame(now) {
   place();
   controls.update();
   renderer.render(scene, camera);
-  for (const i in tags) {
+  const placed = [];
+  for (const i of tagOrder) {
     v3.copy(cur[i]).project(camera);
     const el = tags[i];
-    if (v3.z > 1 || Math.abs(v3.x) > 1.05 || Math.abs(v3.y) > 1.05) { el.style.visibility = "hidden"; continue; }
+    if (!el.w) { el.w = el.offsetWidth; el.h = el.offsetHeight; }
+    const x = (v3.x + 1) / 2 * innerWidth + 10, y = (1 - v3.y) / 2 * innerHeight - el.h / 2;
+    const off = v3.z > 1 || Math.abs(v3.x) > 1.05 || Math.abs(v3.y) > 1.05;
+    const hit = placed.some(b => x < b.x + b.w + 4 && x + el.w + 4 > b.x && y < b.y + b.h && y + el.h > b.y);
+    if (off || hit) { el.style.visibility = "hidden"; continue; }
+    placed.push({ x, y, w: el.w, h: el.h });
     el.style.visibility = "visible";
-    el.style.transform = `translate(${(v3.x + 1) / 2 * innerWidth + 10}px, ${(1 - v3.y) / 2 * innerHeight}px) translateY(-50%)`;
+    el.style.transform = `translate(${x}px, ${y}px)`;
   }
   requestAnimationFrame(frame);
 }
