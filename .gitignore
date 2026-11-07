@@ -1,0 +1,6 @@
+# Web of Science exports and derived data are not redistributed
+data/raw/
+data/clean/
+*.rds
+.Rhistory
+__pycache__/

@@ -1,0 +1,124 @@
+label	replace by
+chip	clonal hematopoiesis of indeterminate potential
+clonal hematopoiesis of indeterminate potential (chip)	clonal hematopoiesis of indeterminate potential
+clonal haematopoiesis of indeterminate potential	clonal hematopoiesis of indeterminate potential
+clonal hematopoiesis of indeterminate	clonal hematopoiesis of indeterminate potential
+clonal haematopoiesis	
+clonal hematopoiesis (ch)	
+ch	
+arch	age-related clonal hematopoiesis
+ccus	clonal cytopenia of undetermined significance
+mds	myelodysplastic syndromes
+myelodysplastic syndrome	myelodysplastic syndromes
+myelodysplasia	myelodysplastic syndromes
+myelodysplastic neoplasms	myelodysplastic syndromes
+aml	acute myeloid leukemia
+acute myeloid leukemia (aml)	acute myeloid leukemia
+acute myeloid leukaemia	acute myeloid leukemia
+ngs	next-generation sequencing
+next generation sequencing	next-generation sequencing
+ctdna	circulating tumor dna
+cfdna	cell-free dna
+mrd	minimal residual disease
+measurable residual disease	minimal residual disease
+ageing	aging
+cardiovascular diseases	cardiovascular disease
+hematopoietic stem cell	hematopoietic stem cells
+hsc	hematopoietic stem cells
+hscs	hematopoietic stem cells
+somatic mutation	somatic mutations
+mutation	somatic mutations
+mutations	somatic mutations
+gene mutations	somatic mutations
+myeloproliferative neoplasm	myeloproliferative neoplasms
+mpn	myeloproliferative neoplasms
+mpns	myeloproliferative neoplasms
+biomarker	biomarkers
+macrophage	macrophages
+risk factor	risk factors
+myeloid neoplasm	myeloid neoplasms
+myeloid malignancies	myeloid neoplasms
+hematological malignancies	hematologic malignancies
+haematological malignancies	hematologic malignancies
+stem cells	hematopoietic stem cells
+nlrp3 inflammasome	inflammasome
+chronic inflammation	inflammation
+inflammaging	inflammation
+coronary artery disease	coronary heart disease
+cad	coronary heart disease
+hematopoietic stem cell transplantation	stem cell transplantation
+allogeneic hematopoietic stem cell transplantation	stem cell transplantation
+chimeric antigen receptor t-cell therapy	car-t
+chimeric antigen receptor t cell therapy	car-t
+car t-cell therapy	car-t
+car t cell therapy	car-t
+car-t cell therapy	car-t
+clonal hematopoiesis	
+case report	
+therapy	
+treatment	
+diagnosis	
+mortality	
+survival	
+expression	
+classification	
+common	
+evolution	
+risk	
+age	
+disease	
+adult patients	
+outcomes	
+management	
+children	
+patients	
+impact	
+malignancies	
+in vitro	
+in vivo	
+prognostic impact	
+poor prognosis	
+signatures	
+vexas	vexas syndrome
+p53	tp53
+circulating tumor dna (ctdna)	circulating tumor dna
+next-generation sequencing (ngs)	next-generation sequencing
+next generation sequencing (ngs)	next-generation sequencing
+potential (chip)	clonal hematopoiesis of indeterminate potential
+<italic>tet2</italic>	tet2
+<italic>tp53</italic>	tp53
+<italic>dnmt3a</italic>	dnmt3a
+<italic>jak2</italic>	jak2
+<italic>asxl1</italic>	asxl1
+<italic>bcorl1</italic>	bcorl1
+<italic>calr</italic>	calr
+<italic>mpl</italic>	mpl
+<italic>nipbl</italic>	nipbl
+<italic>srsf2</italic>	srsf2
+<italic>uba1</italic>	uba1
+<italic>zrsr2</italic>	zrsr2
+haematopoiesis	hematopoiesis
+haematopoietic stem cells	hematopoietic stem cells
+haematopoietic stem cell	hematopoietic stem cells
+leukaemia	leukemia
+acute leukaemia	acute leukemia
+chronic myeloid leukaemia	chronic myeloid leukemia
+chronic lymphocytic leukaemia	chronic lymphocytic leukemia
+chronic myelomonocytic leukaemia	chronic myelomonocytic leukemia
+aplastic anaemia	aplastic anemia
+acquired aplastic anaemia	aplastic anemia
+essential thrombocythaemia	essential thrombocythemia
+circulating tumour dna	circulating tumor dna
+circulating tumour dna (ctdna)	circulating tumor dna
+circulating tumour cells (ctcs)	circulating tumor cells
+clonal haematopoiesis of indeterminate potential (chip)	clonal hematopoiesis of indeterminate potential
+clonal haemopoiesis of indeterminate potential	clonal hematopoiesis of indeterminate potential
+clonal haemopoiesis	
+clonal haematopoiesis of	
+potential	
+ckd	chronic kidney disease
+t-mn	therapy-related myeloid neoplasms
+therapy-related myeloid neoplasm	therapy-related myeloid neoplasms
+therapy-related myeloid neoplasm (trmn)	therapy-related myeloid neoplasms
+myelodysplastic	myelodysplastic syndromes
+myeloproliferative disorders	myeloproliferative neoplasms
