@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>*{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
+<title>CH Co-citation Star Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Newsreader:opsz,wght@6..72,500&display=swap">
+<style>
+/* Layout: full-bleed WebGL stage; quiet overlay panels pinned to the four corners. Single dark look by design. */
+:root {
+  --bg: #0c0e12;
+  --bg-glow: #1d1416;
+  --panel: rgba(18, 20, 25, 0.72);
+  --line: rgba(236, 228, 214, 0.14);
+  --fg: #ece4d6;
+  --muted: #9a948b;
+  --accent: #e2434f;
+  --serif: "Newsreader", "Georgia", serif;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Consolas", monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); overflow: hidden; }
+#stage { position: fixed; inset: 0; background: radial-gradient(120% 90% at 55% 45%, var(--bg-glow) 0%, var(--bg) 62%); }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.ui { position: fixed; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+  padding-block: calc(env(safe-area-inset-top, 0px) + 18px) calc(env(safe-area-inset-bottom, 0px) + 18px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.head { max-width: 30rem; min-width: 0; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(24px, 3.4vw, 38px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.sub { font-family: var(--mono); font-size: 12px; color: var(--muted); margin: 8px 0 0; font-variant-numeric: tabular-nums; }
+.controls { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: auto; min-width: 0; max-width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 3px; backdrop-filter: blur(6px); max-width: 100%; }
+.seg span { font: 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 6px 8px 6px 10px; align-self: center; }
+.seg button, .solo { font: 500 12px var(--sans); color: var(--fg); background: transparent; border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.solo { background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(6px); }
+.solo[aria-pressed="true"] { border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.foot { align-items: flex-end; }
+.legend { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; backdrop-filter: blur(6px); min-width: 0; max-width: min(100%, 28rem); pointer-events: auto; }
+.legend h2 { font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.ramp { height: 8px; border-radius: 4px; width: min(240px, 70vw); }
+.ticks { display: flex; justify-content: space-between; width: min(240px, 70vw); font: 11px var(--mono); color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.chips i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.note { font: 11px/1.55 var(--mono); color: var(--muted); text-align: right; max-width: 20rem; margin: 0; }
+.note b { color: var(--fg); font-weight: 500; }
+.tag { position: fixed; left: 0; top: 0; pointer-events: none; white-space: nowrap; font: 11px var(--mono); color: var(--fg);
+  background: rgba(12, 14, 18, 0.66); border: 1px solid var(--line); border-radius: 3px; padding: 2px 6px 2px 5px; }
+.tag i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+#tip { position: fixed; left: 0; top: 0; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; backdrop-filter: blur(8px); min-width: 170px; }
+#tip strong { display: block; font-family: var(--serif); font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+#tip dl { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 0; font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+#tip dt { color: var(--muted); }
+#tip dd { margin: 0; text-align: right; }
+#fail { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+@media (max-width: 640px) {
+  .controls { align-items: flex-start; }
+  .note { text-align: left; }
+  .tag:nth-of-type(n+12) { display: none; }
+}
+</style>
+
+</head>
+<body>
+<div id="stage"></div>
+<div id="tags"></div>
+<div class="ui">
+  <div class="row">
+    <div class="head">
+      <p class="eyebrow" id="eyebrow">Clonal hematopoiesis · author keywords</p>
+      <h1 id="title">Keyword Star Map</h1>
+      <p class="sub" id="stats"></p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="View">
+        <span>View</span>
+        <button id="v-net" aria-pressed="true">Star map</button>
+        <button id="v-ter" aria-pressed="false">Terrain</button>
+        <button id="v-burst" aria-pressed="false">Burst</button>
+        <button id="v-neb" aria-pressed="false">Nebula</button>
+      </div>
+      <div class="seg" role="group" aria-label="Colour">
+        <span>Colour</span>
+        <button id="c-yr" aria-pressed="true">Mean year</button>
+        <button id="c-cl" aria-pressed="false">Cluster</button>
+      </div>
+      <button class="solo" id="spin" aria-pressed="true">Auto-rotate</button>
+    </div>
+  </div>
+  <div class="row foot">
+    <div class="legend" id="legend"></div>
+    <p class="note" id="note"></p>
+  </div>
+</div>
+<div id="tip" hidden></div>
+<div id="fail" hidden>This view needs WebGL, and this browser could not create a WebGL canvas.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const D = {"nodes":[{"l":"Jaiswal S 2014","x":0.0542,"y":0.0644,"c":1,"o":1406,"yr":2014,"src":"NEW ENGL J MED"},{"l":"Genovese G 2014","x":-0.0131,"y":-0.0356,"c":1,"o":1069,"yr":2014,"src":"NEW ENGL J MED"},{"l":"Jaiswal S 2017","x":-0.1462,"y":0.0095,"c":2,"o":962,"yr":2017,"src":"NEW ENGL J MED"},{"l":"Steensma DP 2015","x":-0.0341,"y":0.1798,"c":1,"o":720,"yr":2015,"src":"BLOOD"},{"l":"Fuster JJ 2017","x":0.0554,"y":-0.1858,"c":2,"o":639,"yr":2017,"src":"SCIENCE"},{"l":"Xie MC 2014","x":0.1397,"y":0.1763,"c":1,"o":598,"yr":2014,"src":"NAT MED"},{"l":"Coombs CC 2017","x":-0.192,"y":0.1691,"c":3,"o":441,"yr":2017,"src":"CELL STEM CELL"},{"l":"Bick AG 2020 (Nature)","x":-0.2173,"y":-0.1881,"c":2,"o":386,"yr":2020,"src":"NATURE"},{"l":"Bolton KL 2020","x":-0.3313,"y":0.0153,"c":3,"o":383,"yr":2020,"src":"NAT GENET"},{"l":"Jaiswal S 2019","x":-0.3553,"y":-0.2829,"c":2,"o":382,"yr":2019,"src":"SCIENCE"},{"l":"Zink F 2017","x":0.2136,"y":-0.1371,"c":1,"o":377,"yr":2017,"src":"BLOOD"},{"l":"Young AL 2016","x":0.2332,"y":-0.0041,"c":3,"o":329,"yr":2016,"src":"NAT COMMUN"},{"l":"Abelson S 2018","x":-0.1495,"y":0.3342,"c":3,"o":321,"yr":2018,"src":"NATURE"},{"l":"Sano S 2018 (j Am Coll Cardiol)","x":-0.0816,"y":-0.3375,"c":2,"o":321,"yr":2018,"src":"J AM COLL CARDIOL"},{"l":"Dorsheimer L 2019","x":0.0845,"y":-0.4447,"c":2,"o":271,"yr":2019,"src":"JAMA CARDIOL"},{"l":"Bick AG 2020 (Circulation)","x":-0.2584,"y":-0.4521,"c":2,"o":262,"yr":2020,"src":"CIRCULATION"},{"l":"Gibson CJ 2017","x":0.3111,"y":0.1911,"c":3,"o":261,"yr":2017,"src":"J CLIN ONCOL"},{"l":"Desai P 2018","x":0.0197,"y":0.3463,"c":3,"o":258,"yr":2018,"src":"NAT MED"},{"l":"Khoury JD 2022","x":-0.5161,"y":0.4517,"c":3,"o":249,"yr":2022,"src":"LEUKEMIA"},{"l":"Sano S 2018 (Circ Res)","x":0.0685,"y":-0.6217,"c":2,"o":240,"yr":2018,"src":"CIRC RES"},{"l":"Busque L 2012","x":0.471,"y":0.0278,"c":1,"o":225,"yr":2012,"src":"NAT GENET"},{"l":"Hsu JI 2018","x":-0.371,"y":0.2007,"c":3,"o":213,"yr":2018,"src":"CELL STEM CELL"},{"l":"Ridker PM 2017","x":0.2521,"y":-0.5754,"c":2,"o":212,"yr":2017,"src":"NEW ENGL J MED"},{"l":"Wong TN 2015","x":0.2026,"y":0.4335,"c":3,"o":210,"yr":2015,"src":"NATURE"},{"l":"Arber DA 2016","x":-0.2921,"y":1,"c":1,"o":206,"yr":2016,"src":"BLOOD"},{"l":"Kar SP 2022","x":-0.6033,"y":-0.2558,"c":2,"o":204,"yr":2022,"src":"NAT GENET"},{"l":"Svensson EC 2022","x":-0.4936,"y":-0.4818,"c":2,"o":204,"yr":2022,"src":"JAMA CARDIOL"},{"l":"Moran-Crusio K 2011","x":0.5276,"y":-0.28,"c":1,"o":203,"yr":2011,"src":"CANCER CELL"},{"l":"Buscarlet M 2017","x":0.3087,"y":-0.2816,"c":1,"o":199,"yr":2017,"src":"BLOOD"},{"l":"Malcovati L 2017","x":-0.0708,"y":0.6565,"c":1,"o":191,"yr":2017,"src":"BLOOD"},{"l":"Cai ZG 2018","x":-0.1191,"y":-0.5734,"c":2,"o":187,"yr":2018,"src":"CELL STEM CELL"},{"l":"Mckerrell T 2015","x":0.464,"y":0.2957,"c":1,"o":186,"yr":2015,"src":"CELL REP"},{"l":"Watson CJ 2020","x":-0.4853,"y":-0.0768,"c":3,"o":182,"yr":2020,"src":"SCIENCE"},{"l":"Challen GA 2012","x":0.6015,"y":-0.1103,"c":1,"o":178,"yr":2012,"src":"NAT GENET"},{"l":"Jaiswal S 2020","x":-0.3001,"y":-0.8018,"c":2,"o":174,"yr":2020,"src":"NAT REV CARDIOL"},{"l":"Papaemmanuil E 2013","x":0.4437,"y":0.8025,"c":1,"o":174,"yr":2013,"src":"BLOOD"},{"l":"Fabre MA 2022","x":-0.6966,"y":0.0953,"c":3,"o":171,"yr":2022,"src":"NATURE"},{"l":"Shlush LI 2014","x":0.7104,"y":0.4622,"c":1,"o":166,"yr":2014,"src":"NATURE"},{"l":"Takahashi K 2017","x":0.1373,"y":0.7037,"c":3,"o":166,"yr":2017,"src":"LANCET ONCOL"},{"l":"Zhang Q 2015","x":0.4277,"y":-0.4887,"c":2,"o":166,"yr":2015,"src":"NATURE"}],"edges":[[0,1,987],[0,2,810],[1,2,579],[0,3,609],[1,3,486],[2,3,441],[0,4,558],[1,4,410],[2,4,571],[3,4,316],[0,5,565],[1,5,536],[2,5,330],[3,5,317],[4,5,242],[0,6,379],[1,6,333],[2,6,281],[3,6,204],[4,6,202],[5,6,203],[0,7,330],[1,7,245],[2,7,285],[3,7,168],[4,7,219],[5,7,140],[6,7,125],[0,8,309],[1,8,265],[2,8,225],[3,8,153],[4,8,153],[5,8,150],[6,8,238],[7,8,151],[0,9,293],[1,9,222],[2,9,244],[3,9,143],[4,9,170],[5,9,107],[6,9,115],[7,9,118],[8,9,113],[0,10,341],[1,10,314],[2,10,278],[3,10,200],[4,10,210],[5,10,206],[6,10,172],[7,10,127],[8,10,132],[9,10,93],[0,11,302],[1,11,280],[2,11,230],[3,11,189],[4,11,178],[5,11,198],[6,11,167],[7,11,100],[8,11,115],[9,11,75],[10,11,162],[0,12,279],[1,12,251],[2,12,192],[3,12,162],[4,12,140],[5,12,176],[6,12,142],[7,12,84],[8,12,111],[9,12,75],[10,12,128],[11,12,132],[0,13,284],[1,13,201],[2,13,287],[3,13,169],[4,13,268],[5,13,115],[6,13,99],[7,13,134],[8,13,88],[9,13,95],[10,13,116],[11,13,101],[12,13,81],[0,14,250],[1,14,178],[2,14,259],[3,14,159],[4,14,225],[5,14,106],[6,14,94],[7,14,110],[8,14,72],[9,14,84],[10,14,102],[11,14,88],[12,14,75],[13,14,170],[0,15,239],[1,15,164],[2,15,242],[3,15,140],[4,15,206],[5,15,95],[6,15,88],[7,15,137],[8,15,84],[9,15,78],[10,15,102],[11,15,85],[12,15,65],[13,15,134],[14,15,123],[0,16,223],[1,16,206],[2,16,166],[3,16,150],[4,16,116],[5,16,135],[6,16,168],[7,16,58],[8,16,123],[9,16,54],[10,16,105],[11,16,115],[12,16,106],[13,16,60],[14,16,60],[15,16,45],[0,17,227],[1,17,200],[2,17,156],[3,17,130],[4,17,108],[5,17,142],[6,17,125],[7,17,75],[8,17,100],[9,17,63],[10,17,104],[11,17,104],[12,17,200],[13,17,59],[14,17,53],[15,17,57],[16,17,95],[0,18,173],[1,18,138],[2,18,114],[3,18,86],[4,18,70],[5,18,76],[6,18,66],[7,18,71],[8,18,90],[9,18,50],[10,18,43],[11,18,40],[12,18,50],[13,18,35],[15,18,33],[16,18,38],[17,18,46],[0,19,221],[1,19,157],[2,19,223],[3,19,130],[4,19,210],[5,19,99],[6,19,81],[7,19,94],[8,19,64],[9,19,85],[10,19,95],[11,19,78],[12,19,61],[13,19,165],[14,19,135],[15,19,105],[16,19,44],[17,19,43],[0,20,207],[1,20,191],[2,20,137],[3,20,137],[4,20,118],[5,20,155],[6,20,94],[7,20,58],[8,20,51],[9,20,40],[10,20,91],[11,20,91],[12,20,58],[13,20,60],[14,20,61],[15,20,49],[16,20,58],[17,20,53],[19,20,49],[0,21,177],[1,21,163],[2,21,136],[3,21,99],[4,21,109],[5,21,106],[6,21,164],[7,21,72],[8,21,137],[9,21,56],[10,21,92],[11,21,94],[12,21,86],[13,21,59],[14,21,56],[15,21,52],[16,21,103],[17,21,67],[18,21,37],[19,21,47],[20,21,47],[0,22,179],[1,22,132],[2,22,194],[3,22,100],[4,22,177],[5,22,73],[6,22,57],[7,22,69],[8,22,42],[9,22,51],[10,22,73],[11,22,61],[12,22,45],[13,22,92],[14,22,89],[15,22,81],[16,22,39],[17,22,37],[19,22,78],[20,22,48],[0,23,182],[1,23,170],[2,23,106],[3,23,110],[4,23,83],[5,23,126],[6,23,138],[7,23,51],[8,23,104],[9,23,39],[10,23,83],[11,23,96],[12,23,88],[13,23,40],[14,23,37],[15,23,32],[16,23,103],[17,23,77],[18,23,38],[20,23,47],[21,23,99],[0,24,126],[1,24,99],[2,24,67],[3,24,83],[5,24,50],[6,24,39],[8,24,32],[12,24,38],[17,24,33],[18,24,30],[23,24,30],[0,25,178],[1,25,132],[2,25,141],[3,25,79],[4,25,108],[5,25,78],[6,25,72],[7,25,118],[8,25,86],[9,25,73],[10,25,66],[11,25,47],[12,25,46],[13,25,68],[14,25,53],[15,25,57],[16,25,30],[17,25,40],[18,25,56],[19,25,43],[21,25,33],[22,25,30],[0,26,170],[1,26,112],[2,26,175],[3,26,82],[4,26,169],[5,26,66],[6,26,60],[7,26,108],[8,26,68],[9,26,63],[10,26,54],[11,26,46],[12,26,36],[13,26,108],[14,26,90],[15,26,101],[17,26,31],[18,26,42],[19,26,75],[20,26,31],[21,26,39],[22,26,83],[25,26,64],[0,27,174],[1,27,158],[2,27,129],[3,27,98],[4,27,115],[5,27,103],[6,27,66],[7,27,41],[8,27,37],[9,27,47],[10,27,80],[11,27,67],[12,27,52],[13,27,58],[14,27,48],[15,27,41],[16,27,39],[17,27,43],[19,27,49],[20,27,77],[21,27,47],[22,27,35],[23,27,40],[0,28,188],[1,28,167],[2,28,152],[3,28,109],[4,28,122],[5,28,115],[6,28,90],[7,28,52],[8,28,59],[9,28,48],[10,28,115],[11,28,93],[12,28,74],[13,28,78],[14,28,63],[15,28,58],[16,28,52],[17,28,60],[19,28,56],[20,28,58],[21,28,51],[22,28,37],[23,28,39],[25,28,36],[26,28,30],[27,28,52],[0,29,155],[1,29,135],[2,29,103],[3,29,114],[4,29,62],[5,29,90],[6,29,68],[7,29,37],[8,29,58],[9,29,30],[10,29,64],[11,29,62],[12,29,69],[16,29,62],[17,29,62],[18,29,57],[20,29,41],[21,29,41],[22,29,31],[23,29,46],[24,29,57],[28,29,33],[0,30,156],[1,30,137],[2,30,118],[3,30,72],[4,30,113],[5,30,83],[6,30,72],[7,30,64],[8,30,54],[9,30,57],[10,30,74],[11,30,68],[12,30,61],[13,30,71],[14,30,50],[15,30,46],[16,30,34],[17,30,40],[19,30,50],[20,30,42],[21,30,58],[22,30,38],[23,30,34],[25,30,38],[26,30,37],[27,30,71],[28,30,52],[0,31,171],[1,31,162],[2,31,101],[3,31,98],[4,31,72],[5,31,134],[6,31,75],[7,31,44],[8,31,47],[10,31,87],[11,31,82],[12,31,70],[13,31,35],[14,31,36],[16,31,50],[17,31,59],[18,31,31],[19,31,31],[20,31,63],[21,31,37],[22,31,31],[23,31,51],[25,31,30],[27,31,40],[28,31,57],[29,31,35],[0,32,161],[1,32,145],[2,32,99],[3,32,82],[4,32,77],[5,32,84],[6,32,86],[7,32,75],[8,32,88],[9,32,67],[10,32,90],[11,32,89],[12,32,80],[13,32,48],[14,32,37],[15,32,55],[16,32,40],[17,32,72],[19,32,41],[20,32,34],[21,32,54],[23,32,40],[25,32,46],[26,32,31],[27,32,33],[28,32,45],[30,32,41],[31,32,37],[0,33,159],[1,33,146],[2,33,102],[3,33,88],[4,33,87],[5,33,109],[6,33,61],[7,33,40],[8,33,35],[9,33,34],[10,33,70],[11,33,70],[12,33,49],[13,33,44],[14,33,35],[15,33,31],[16,33,42],[17,33,36],[19,33,43],[20,33,54],[21,33,47],[23,33,38],[27,33,93],[28,33,44],[30,33,44],[31,33,40],[32,33,37],[0,34,145],[1,34,104],[2,34,136],[3,34,79],[4,34,115],[5,34,53],[6,34,45],[7,34,62],[8,34,44],[9,34,67],[10,34,45],[11,34,45],[13,34,79],[14,34,73],[15,34,60],[19,34,59],[22,34,41],[25,34,33],[26,34,47],[28,34,34],[30,34,32],[0,35,134],[1,35,126],[2,35,55],[3,35,83],[4,35,33],[5,35,87],[6,35,34],[10,35,38],[11,35,37],[12,35,39],[16,35,35],[17,35,37],[20,35,36],[23,35,31],[24,35,44],[29,35,55],[31,35,36],[0,36,148],[1,36,122],[2,36,101],[3,36,63],[4,36,65],[5,36,74],[6,36,66],[7,36,72],[8,36,82],[9,36,52],[10,36,55],[11,36,59],[12,36,62],[13,36,39],[14,36,31],[15,36,44],[16,36,41],[17,36,50],[18,36,53],[21,36,45],[23,36,33],[25,36,53],[26,36,43],[30,36,40],[32,36,59],[0,37,141],[1,37,135],[2,37,65],[3,37,84],[4,37,55],[5,37,108],[6,37,50],[10,37,51],[11,37,60],[12,37,60],[16,37,41],[17,37,42],[20,37,63],[23,37,40],[27,37,42],[28,37,34],[29,37,30],[31,37,47],[33,37,57],[35,37,37],[0,38,143],[1,38,130],[2,38,97],[3,38,98],[4,38,75],[5,38,88],[6,38,126],[7,38,34],[8,38,84],[10,38,64],[11,38,73],[12,38,70],[13,38,34],[16,38,99],[17,38,65],[18,38,33],[20,38,42],[21,38,68],[23,38,88],[24,38,31],[28,38,36],[29,38,48],[37,38,35],[0,39,146],[1,39,123],[2,39,135],[3,39,90],[4,39,127],[5,39,75],[6,39,61],[7,39,54],[8,39,41],[9,39,43],[10,39,70],[11,39,67],[12,39,45],[13,39,84],[14,39,56],[15,39,49],[16,39,35],[17,39,35],[19,39,57],[20,39,51],[21,39,39],[22,39,45],[23,39,32],[26,39,34],[27,39,66],[28,39,49],[30,39,61],[33,39,35]],"clusters":{"1":"Jaiswal S 2014","2":"Jaiswal S 2017","3":"Coombs CC 2017"},"records":2293,"text":{"eyebrow":"Clonal hematopoiesis · reference co-citation","noun":"Co-citation","stats":"40 most-cited references · 638 co-citation links (≥ 30) · 2,293 WoS core records","yr0":2011,"yr1":2023,"tickStep":2,"zPerYear":5.0,"yrDigits":0,"depth":"publication year of the cited paper, newer closer","unit":"citations","unitCap":"Citations in core set","yearShort":"Year","yearTitle":"Publication year of cited paper","layout":"Plane positions from the fig5 layout","links":"co-citation links","clusterTitle":"Louvain clusters (fig5), named by most-cited reference","burstNear":"closer means co-cited with it more often","burstOuter":"co-cited with it fewer than 30 times","withCentre":"Co-cited with centre"}};
+const N = D.nodes, E = D.edges, L = N.length;
+const maxO = Math.max(...N.map(n => n.o));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+const T = D.text;
+$("eyebrow").textContent = T.eyebrow;
+$("stats").textContent = T.stats;
+$("title").textContent = T.noun + " Star Map";
+
+/* ---------- colour ---------- */
+const lerpStops = (stops, t) => {
+  t = Math.min(1, Math.max(0, t));
+  for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
+    const [t0, c0] = stops[i - 1], [t1, c1] = stops[i];
+    return new THREE.Color(c0).lerp(new THREE.Color(c1), (t - t0) / (t1 - t0));
+  }
+  return new THREE.Color(stops[stops.length - 1][1]);
+};
+const YR0 = T.yr0, YR1 = T.yr1, YMID = (YR0 + YR1) / 2;
+const yearStops = [[0, "#efe3cc"], [0.35, "#f1b39f"], [0.7, "#e2434f"], [1, "#b0102a"]];
+const clusterHex = ["#e8475a", "#f2c14e", "#5fb3d9", "#8fd694", "#c693f0", "#f08a5d", "#e8dcc4", "#5de0c4", "#ff9fc4", "#9fb0ff"];
+const terrainStops = [[0, "#22180f"], [0.07, "#5e4129"], [0.2, "#b08d5f"], [0.38, "#ece1ca"], [0.6, "#f3cdbd"], [0.8, "#e1636f"], [1, "#b81d33"]];
+let colorMode = "yr";
+const nodeColor = n => colorMode === "yr" ? lerpStops(yearStops, (n.yr - YR0) / (YR1 - YR0))
+  : new THREE.Color(clusterHex[(n.c - 1) % clusterHex.length]);
+
+/* ---------- scene ---------- */
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+catch (e) { $("fail").hidden = false; throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+$("stage").appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0c0e12, 160, 360);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.5, 900);
+camera.position.set(0, 12, 128);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.autoRotate = !reduce; controls.autoRotateSpeed = 0.45;
+controls.minDistance = 30; controls.maxDistance = 320;
+if (reduce) $("spin").setAttribute("aria-pressed", "false");
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const sun = new THREE.DirectionalLight(0xffe9d6, 0.95); sun.position.set(40, 90, 60); scene.add(sun);
+const ember = new THREE.PointLight(0xff3a4a, 0.7, 260); ember.position.set(-50, 30, 50); scene.add(ember);
+
+/* ---------- star map positions ---------- */
+const S = 52, Y_OFF = -16, H_MAX = 27, SIG = 6.5;
+const pNet = N.map(n => new THREE.Vector3(n.x * S, n.y * S, (n.yr - YMID) * T.zPerYear));
+
+/* ---------- terrain ---------- */
+const xs = N.map(n => n.x * S), zs = N.map(n => -n.y * S);
+const minX = Math.min(...xs) - 20, maxX = Math.max(...xs) + 20, minZ = Math.min(...zs) - 20, maxZ = Math.max(...zs) + 20;
+const wts = N.map(n => Math.pow(n.o, 0.75));
+const rawH = (x, z) => { let h = 0; for (let i = 0; i < L; i++) { const dx = x - xs[i], dz = z - zs[i]; h += wts[i] * Math.exp(-(dx * dx + dz * dz) / (2 * SIG * SIG)); } return h; };
+const W = maxX - minX, DZ = maxZ - minZ, SEGX = 170, SEGZ = Math.round(170 * DZ / W);
+const tGeo = new THREE.PlaneGeometry(W, DZ, SEGX, SEGZ);
+tGeo.rotateX(-Math.PI / 2); tGeo.translate((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
+const tp = tGeo.attributes.position, raws = new Float32Array(tp.count);
+let rmax = 0;
+for (let i = 0; i < tp.count; i++) { raws[i] = rawH(tp.getX(i), tp.getZ(i)); rmax = Math.max(rmax, raws[i]); }
+const hScale = H_MAX / rmax;
+const tCol = new Float32Array(tp.count * 3);
+for (let i = 0; i < tp.count; i++) {
+  const hn = raws[i] / rmax, band = 14, q = Math.floor(hn * band) / band;
+  const c = lerpStops(terrainStops, 0.62 * q + 0.38 * hn);
+  if (hn * band - Math.floor(hn * band) < 0.13 && hn > 0.04) c.multiplyScalar(0.8);
+  tp.setY(i, raws[i] * hScale);
+  c.toArray(tCol, i * 3);
+}
+tGeo.setAttribute("color", new THREE.BufferAttribute(tCol, 3));
+tGeo.computeVertexNormals();
+const terrain = new THREE.Mesh(tGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.02, transparent: true, opacity: 0 }));
+terrain.position.y = Y_OFF; scene.add(terrain);
+const ground = N.map((n, i) => rawH(xs[i], zs[i]) * hScale + Y_OFF);
+const pTer = N.map((n, i) => new THREE.Vector3(xs[i], ground[i] + 5 + 11 * Math.sqrt(n.o / maxO), zs[i]));
+
+/* ---------- burst: hub keyword at the centre ---------- */
+const hub = N.reduce((b, n, i) => n.o > N[b].o ? i : b, 0);
+const hubW = new Array(L).fill(0);
+E.forEach(([a, b, w]) => { if (a === hub) hubW[b] = w; if (b === hub) hubW[a] = w; });
+const maxHW = Math.max(...hubW);
+const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+const pBurst = N.map((n, i) => {
+  if (i === hub) return new THREE.Vector3(0, 0, 0);
+  const d = pNet[i].clone().sub(pNet[hub]);
+  d.z += (rnd() - 0.5) * 30;
+  if (d.lengthSq() < 1e-6) d.set(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5);
+  d.normalize();
+  const dist = hubW[i] > 0 ? 14 + 66 * (1 - Math.sqrt(hubW[i] / maxHW)) : 92 + rnd() * 18;
+  return d.multiplyScalar(dist);
+});
+
+/* ---------- nebula: compact star map wrapped in a density cloud ---------- */
+const pNeb = pNet.map(p => new THREE.Vector3(p.x * 0.85, p.y * 0.85, p.z * 1.1));
+
+/* ---------- glow sprite texture ---------- */
+const glowTex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d"), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, "rgba(255,255,255,0.9)"); r.addColorStop(0.25, "rgba(255,255,255,0.35)"); r.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+})();
+
+/* ---------- keyword spheres ---------- */
+const sGeo = new THREE.SphereGeometry(1, 28, 18);
+const balls = [], halos = [], cur = pNet.map(p => p.clone());
+N.forEach((n, i) => {
+  const r = 0.55 + 3.1 * Math.sqrt(n.o / maxO);
+  const m = new THREE.Mesh(sGeo, new THREE.MeshStandardMaterial({ roughness: 0.32, metalness: 0.08, emissiveIntensity: 0.32 }));
+  m.scale.setScalar(r); m.userData = { i, r }; scene.add(m); balls.push(m);
+  const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.45 }));
+  h.scale.setScalar(r * 4.2); scene.add(h); halos.push(h);
+});
+
+/* ---------- line layers ---------- */
+function lineLayer(nSeg, additive) {
+  const pos = new Float32Array(nSeg * 6), col = new Float32Array(nSeg * 6), geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, depthWrite: false,
+    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending });
+  scene.add(new THREE.LineSegments(geo, mat));
+  return { pos, col, geo, mat };
+}
+const links = lineLayer(E.length, true);      // all co-occurrence links
+const stems = lineLayer(L, false);            // terrain stems
+const spokeIdx = N.map((n, i) => i).filter(i => hubW[i] > 0);
+const spokes = lineLayer(spokeIdx.length, true);
+
+/* ---------- dust and nebula cloud ---------- */
+const dustGeo = new THREE.BufferGeometry(), dp = new Float32Array(900 * 3);
+for (let i = 0; i < dp.length; i++) dp[i] = (rnd() - 0.5) * (i % 3 === 1 ? 170 : 280);
+dustGeo.setAttribute("position", new THREE.BufferAttribute(dp, 3));
+const dustMat = new THREE.PointsMaterial({ size: 0.7, color: 0xe9d9c6, transparent: true, opacity: 0, depthWrite: false });
+scene.add(new THREE.Points(dustGeo, dustMat));
+
+const CLOUD = 16000, cw = N.map(n => Math.pow(n.o, 0.8)), cwSum = cw.reduce((a, b) => a + b, 0);
+const cPos = new Float32Array(CLOUD * 3), cCol = new Float32Array(CLOUD * 3);
+const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const warm = new THREE.Color("#f6c3a4"), cream = new THREE.Color("#f1e6dc"), haze = new THREE.Color("#8fa3b8");
+for (let k = 0; k < CLOUD; k++) {
+  let pick = rnd() * cwSum, i = 0; while (pick > cw[i] && i < L - 1) pick -= cw[i++];
+  const sd = 5 + 9 * Math.sqrt(N[i].o / maxO) + rnd() * 6, gx = gauss(), gy = gauss(), gz = gauss();
+  cPos.set([pNeb[i].x + gx * sd, pNeb[i].y + gy * sd, pNeb[i].z + gz * sd], k * 3);
+  const spread = Math.min(1, Math.sqrt(gx * gx + gy * gy + gz * gz) / 2.6);
+  const c = (N[i].o / maxO > 0.3 ? warm.clone().lerp(cream, spread) : cream.clone()).lerp(haze, spread * 0.8);
+  c.toArray(cCol, k * 3);
+}
+const cloudGeo = new THREE.BufferGeometry();
+cloudGeo.setAttribute("position", new THREE.BufferAttribute(cPos, 3));
+cloudGeo.setAttribute("color", new THREE.BufferAttribute(cCol, 3));
+const cloudMat = new THREE.PointsMaterial({ size: 7, map: glowTex, vertexColors: true, transparent: true, opacity: 0, depthWrite: false });
+const cloud = new THREE.Points(cloudGeo, cloudMat); scene.add(cloud);
+
+/* ---------- view definitions ---------- */
+const VIEWS = {
+  net: { pos: pNet, op: { links: 0.2, stems: 0, spokes: 0, terrain: 0, dust: 0.35, cloud: 0 }, hub: 1, cam: [0, 12, 128],
+    title: T.noun + " Star Map",
+    note: `<b>Depth</b> = ${T.depth}<br><b>Sphere size</b> = ${T.unit}<br>${T.layout}` },
+  ter: { pos: pTer, op: { links: 0, stems: 0.55, spokes: 0, terrain: 1, dust: 0, cloud: 0 }, hub: 1, cam: [0, 78, 112],
+    title: T.noun + " Terrain",
+    note: `<b>Height</b> = density, weighted by ${T.unit}<br><b>Stem height</b> = ${T.unit}<br>${T.layout}` },
+  burst: { pos: pBurst, op: { links: 0.03, stems: 0, spokes: 0.4, terrain: 0, dust: 0.35, cloud: 0 }, hub: 2.4, cam: [0, 10, 165],
+    title: T.noun + " Burst",
+    note: "", },
+  neb: { pos: pNeb, op: { links: 0.3, stems: 0, spokes: 0, terrain: 0, dust: 0.12, cloud: 0.16 }, hub: 1, cam: [0, 6, 112],
+    title: T.noun + " Nebula",
+    note: `<b>Cloud density</b> = density, weighted by ${T.unit}<br><b>Filaments</b> = ${T.links}<br>${T.layout}` },
+};
+VIEWS.burst.note = `<b>Centre</b> = ${N[hub].l} (${N[hub].o.toLocaleString("en")} ${T.unit})<br><b>Distance</b> = ${T.burstNear}<br><b>Outer ring</b> = ${T.burstOuter}`;
+
+let view = "net", trans = null;
+const state = { op: { ...VIEWS.net.op }, hub: 1 };
+
+/* ---------- paint / place ---------- */
+const tags = {};
+function paint() {
+  N.forEach((n, i) => {
+    const c = nodeColor(n);
+    balls[i].material.color.copy(c); balls[i].material.emissive.copy(c); halos[i].material.color.copy(c);
+    c.toArray(stems.col, i * 6); c.toArray(stems.col, i * 6 + 3);
+    if (tags[i]) tags[i].firstChild.style.background = "#" + c.getHexString();
+  });
+  E.forEach(([a, b], k) => { nodeColor(N[a]).toArray(links.col, k * 6); nodeColor(N[b]).toArray(links.col, k * 6 + 3); });
+  const hc = nodeColor(N[hub]);
+  spokeIdx.forEach((i, k) => { hc.toArray(spokes.col, k * 6); new THREE.Color("#fff3ea").toArray(spokes.col, k * 6 + 3); });
+  [links, stems, spokes].forEach(l => { l.geo.attributes.color.needsUpdate = true; });
+  legend();
+}
+function place() {
+  for (let i = 0; i < L; i++) {
+    const s = balls[i].userData.r * (i === hub ? state.hub : 1);
+    balls[i].position.copy(cur[i]); halos[i].position.copy(cur[i]);
+    if (hovered !== balls[i]) balls[i].scale.setScalar(s);
+    halos[i].scale.setScalar(s * 4.2);
+    stems.pos.set([cur[i].x, ground[i], cur[i].z, cur[i].x, cur[i].y, cur[i].z], i * 6);
+  }
+  E.forEach(([a, b], k) => { links.pos.set([cur[a].x, cur[a].y, cur[a].z, cur[b].x, cur[b].y, cur[b].z], k * 6); });
+  spokeIdx.forEach((i, k) => { spokes.pos.set([cur[hub].x, cur[hub].y, cur[hub].z, cur[i].x, cur[i].y, cur[i].z], k * 6); });
+  [links, stems, spokes].forEach(l => { l.geo.attributes.position.needsUpdate = true; });
+  links.mat.opacity = state.op.links; stems.mat.opacity = state.op.stems; spokes.mat.opacity = state.op.spokes;
+  terrain.material.opacity = state.op.terrain; terrain.visible = state.op.terrain > 0.01; terrain.material.depthWrite = state.op.terrain > 0.95;
+  dustMat.opacity = state.op.dust; cloudMat.opacity = state.op.cloud; cloud.visible = state.op.cloud > 0.002;
+}
+
+/* ---------- labels ---------- */
+N.map((n, i) => i).sort((a, b) => N[b].o - N[a].o).slice(0, 22).forEach(i => {
+  const el = document.createElement("div"); el.className = "tag";
+  el.appendChild(document.createElement("i")); el.appendChild(document.createTextNode(N[i].l));
+  $("tags").appendChild(el); tags[i] = el;
+});
+
+/* ---------- legend + notes ---------- */
+function legend() {
+  const lg = $("legend"); lg.textContent = "";
+  const h = document.createElement("h2");
+  if (colorMode === "yr") {
+    h.textContent = T.yearTitle; lg.appendChild(h);
+    const ramp = document.createElement("div"); ramp.className = "ramp";
+    ramp.style.background = `linear-gradient(90deg, ${yearStops.map(([t, c]) => `${c} ${t * 100}%`).join(",")})`;
+    const ticks = document.createElement("div"); ticks.className = "ticks";
+    for (let y = YR0; y <= YR1; y += T.tickStep) { const s = document.createElement("span"); s.textContent = y; ticks.appendChild(s); }
+    lg.append(ramp, ticks);
+  } else {
+    h.textContent = T.clusterTitle; lg.appendChild(h);
+    const chips = document.createElement("div"); chips.className = "chips";
+    Object.keys(D.clusters).sort((a, b) => a - b).forEach(c => {
+      const s = document.createElement("span"), dot = document.createElement("i");
+      dot.style.background = clusterHex[(c - 1) % clusterHex.length];
+      s.append(dot, document.createTextNode(`${c} ${D.clusters[c]}`)); chips.appendChild(s);
+    });
+    lg.appendChild(chips);
+  }
+}
+function note() { $("title").textContent = VIEWS[view].title; $("note").innerHTML = VIEWS[view].note; }
+
+/* ---------- controls ---------- */
+const easeIO = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+function setView(v) {
+  if (v === view && !trans) return;
+  view = v;
+  ["net", "ter", "burst", "neb"].forEach(k => $("v-" + k).setAttribute("aria-pressed", k === v));
+  trans = { from: cur.map(p => p.clone()), op: { ...state.op }, hub: state.hub, cam: camera.position.clone(),
+    target: controls.target.clone(), start: performance.now(), dur: reduce ? 1 : 1600 };
+  note();
+}
+function setColor(m) {
+  colorMode = m; $("c-yr").setAttribute("aria-pressed", m === "yr"); $("c-cl").setAttribute("aria-pressed", m === "cl"); paint();
+}
+["net", "ter", "burst", "neb"].forEach(k => { $("v-" + k).onclick = () => setView(k); });
+$("c-yr").onclick = () => setColor("yr"); $("c-cl").onclick = () => setColor("cl");
+$("spin").onclick = e => { controls.autoRotate = !controls.autoRotate; e.currentTarget.setAttribute("aria-pressed", controls.autoRotate); };
+
+/* ---------- hover / tap ---------- */
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(); let hovered = null;
+function pick(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(balls)[0];
+  if (hovered) hovered.material.emissiveIntensity = 0.32;
+  hovered = hit ? hit.object : null;
+  const tip = $("tip");
+  if (!hovered) { tip.hidden = true; return; }
+  const i = hovered.userData.i, n = N[i];
+  hovered.material.emissiveIntensity = 0.75;
+  hovered.scale.setScalar(hovered.userData.r * (i === hub ? state.hub : 1) * 1.3);
+  tip.textContent = "";
+  const s = document.createElement("strong"); s.textContent = n.l;
+  const dl = document.createElement("dl");
+  const rows = [[T.unitCap, n.o.toLocaleString("en")], [T.yearShort, n.yr.toFixed(T.yrDigits)], ["Cluster", `${n.c} · ${D.clusters[n.c]}`]];
+  if (n.src) rows.unshift(["Source", n.src]);
+  if (i !== hub) rows.push([T.withCentre, hubW[i]]);
+  rows.forEach(([k, v]) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
+  tip.append(s, dl); tip.hidden = false;
+  const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8), y = Math.min(ev.clientY + 14, innerHeight - tip.offsetHeight - 8);
+  tip.style.transform = `translate(${x}px, ${y}px)`;
+}
+renderer.domElement.addEventListener("pointermove", pick);
+renderer.domElement.addEventListener("pointerdown", pick);
+renderer.domElement.addEventListener("pointerleave", () => { $("tip").hidden = true; });
+
+/* ---------- loop ---------- */
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < 640 ? 62 : 45; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+const v3 = new THREE.Vector3(), origin = new THREE.Vector3();
+function frame(now) {
+  if (trans) {
+    const k = Math.min(1, (now - trans.start) / trans.dur), e = easeIO(k), V = VIEWS[view];
+    for (let i = 0; i < L; i++) cur[i].lerpVectors(trans.from[i], V.pos[i], e);
+    for (const key in state.op) state.op[key] = trans.op[key] + (V.op[key] - trans.op[key]) * e;
+    state.hub = trans.hub + (V.hub - trans.hub) * e;
+    camera.position.lerpVectors(trans.cam, v3.set(...V.cam), e);
+    controls.target.lerpVectors(trans.target, origin, e);
+    if (k >= 1) trans = null;
+  }
+  place();
+  controls.update();
+  renderer.render(scene, camera);
+  for (const i in tags) {
+    v3.copy(cur[i]).project(camera);
+    const el = tags[i];
+    if (v3.z > 1 || Math.abs(v3.x) > 1.05 || Math.abs(v3.y) > 1.05) { el.style.visibility = "hidden"; continue; }
+    el.style.visibility = "visible";
+    el.style.transform = `translate(${(v3.x + 1) / 2 * innerWidth + 10}px, ${(1 - v3.y) / 2 * innerHeight}px) translateY(-50%)`;
+  }
+  requestAnimationFrame(frame);
+}
+paint(); note(); place();
+requestAnimationFrame(frame);
+</script>
+
+<a href="./" style="position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 4px);font:11px 'IBM Plex Mono',monospace;color:#9a948b;z-index:5;text-decoration:none">← all views</a>
+</body>
+</html>

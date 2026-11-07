@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clonal Hematopoiesis in 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Newsreader:opsz,wght@6..72,500&display=swap">
+<style>
+:root { --bg:#0c0e12; --panel:#15181e; --line:rgba(236,228,214,.14); --fg:#ece4d6; --muted:#9a948b; --accent:#e2434f; color-scheme:dark; }
+* { box-sizing:border-box }
+body { margin:0; background:radial-gradient(90% 60% at 70% 0%, #1d1416 0%, var(--bg) 60%) fixed, var(--bg); color:var(--fg);
+  font:15px/1.6 "IBM Plex Sans", system-ui, sans-serif; min-height:100vh;
+  padding-block:calc(env(safe-area-inset-top,0px) + 56px) calc(env(safe-area-inset-bottom,0px) + 48px);
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); }
+main { max-width:960px; margin:0 auto; display:grid; gap:32px; }
+.eyebrow { font:11px "IBM Plex Mono", monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+h1 { font:500 clamp(32px,5vw,52px)/1.05 "Newsreader", Georgia, serif; margin:0; letter-spacing:-.015em; text-wrap:balance; }
+.lede { color:var(--muted); max-width:62ch; margin:14px 0 0; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; }
+.card { display:flex; flex-direction:column; gap:8px; padding:20px; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  color:inherit; text-decoration:none; transition:border-color .2s, transform .2s; }
+.card:hover, .card:focus-visible { border-color:var(--accent); transform:translateY(-2px); outline:none; }
+.k { font:12px "IBM Plex Mono", monospace; color:var(--accent); }
+.card h2 { font:500 24px/1.15 "Newsreader", Georgia, serif; margin:0; }
+.card p { margin:0; color:var(--muted); font-size:14px; flex:1; }
+.go { font:12px "IBM Plex Mono", monospace; }
+footer { font:12px/1.6 "IBM Plex Mono", monospace; color:var(--muted); border-top:1px solid var(--line); padding-top:16px; }
+@media (prefers-reduced-motion: reduce) { .card { transition:none } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Clonal hematopoiesis · bibliometric maps</p>
+    <h1>Clonal Hematopoiesis in 3D</h1>
+    <p class="lede">Interactive views of 2,293 Web of Science core records (2014–2026, search date 16 October 2026). Drag to rotate, scroll to zoom, hover for details.</p>
+  </header>
+  <section class="grid">
+    <a class="card" href="keyword.html"><span class="k">01</span><h2>Keyword Star Map</h2><p>146 author keywords from the VOSviewer map: star map, terrain, burst and nebula views.</p><span class="go">Open →</span></a>
+    <a class="card" href="cocitation.html"><span class="k">02</span><h2>Co-citation Star Map</h2><p>The 40 most-cited references and their 638 co-citation links, in the same four views.</p><span class="go">Open →</span></a>
+    <a class="card" href="globe.html"><span class="k">03</span><h2>Collaboration Globe</h2><p>Papers and co-authorship between 76 countries, with a filter for arc strength.</p><span class="go">Open →</span></a>
+  </section>
+  <footer>Built with three.js r128. Keyword positions come from VOSviewer; co-citation and country data follow the counting rules of the 2D figures in the paper.</footer>
+</main>
+</body>
+</html>
